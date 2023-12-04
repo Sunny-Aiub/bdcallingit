@@ -110,7 +110,7 @@ class AddProductController extends GetxController {
         // }
         var headers = {'Authorization': 'Bearer ${GetStorage().read('token')}'};
         var data = D.FormData.fromMap({
-          'files': [await D.MultipartFile.fromFile(filePath, filename: '')],
+          'image':  await D.MultipartFile.fromFile(filePath),
           'name': nameController.text,
           'price': priceController.text,
           'stock_quantity': quantityController.text,
@@ -130,6 +130,7 @@ class AddProductController extends GetxController {
             .onError((error, stackTrace) {
           EasyLoading.dismiss();
           CommonFunctions.showToast(MessageConstant.serverError, Colors.red);
+          Get.offAndToNamed(Routes.MY_PRODUCTS);
 
           throw Exception();
         });
@@ -161,7 +162,7 @@ class AddProductController extends GetxController {
           'Authorization': 'Bearer ${GetStorage().read('token')}',
         };
         var data = D.FormData.fromMap({
-          'files': [await D.MultipartFile.fromFile(filePath, filename: '')],
+          'image':  (filePath == "")? "" : await D.MultipartFile.fromFile(filePath),
           'name': nameController.text,
           'price': priceController.text,
           'stock_quantity': quantityController.text,
@@ -184,6 +185,7 @@ class AddProductController extends GetxController {
             .onError((error, stackTrace) {
           EasyLoading.dismiss();
           CommonFunctions.showToast(MessageConstant.serverError, Colors.red);
+          Get.offAndToNamed(Routes.MY_PRODUCTS);
 
           throw Exception();
         });
