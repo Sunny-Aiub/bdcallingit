@@ -3,15 +3,17 @@ import 'dart:io';
 
 import 'package:bdcallingit/app/data/models/products_response.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:dio/dio.dart' as D;
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:http/http.dart' as http;
+// import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 
 import '../../../http/request.dart';
 import '../../../http/urls.dart';
+import '../../../routes/app_pages.dart';
 import '../../../utils/common_funcs.dart';
 import '../../../utils/constants.dart';
 
@@ -75,8 +77,8 @@ class AddProductController extends GetxController {
           connection == ConnectivityResult.wifi) {
         EasyLoading.show(status: 'Wait Please while processing...');
 
-        // var uri = Uri.parse(Urls.GET_MY_PRODUCTS);
-        // http.MultipartRequest request = http.MultipartRequest('POST', uri);
+        // var request = http.MultipartRequest(
+        //     'POST', Uri.parse('${Urls.BASE_URL}/api/my-products'));
         // request.headers['Authorization'] =
         //     'Bearer ${GetStorage().read('token')}';
         // request.fields.addAll({
@@ -85,57 +87,62 @@ class AddProductController extends GetxController {
         //   'stock_quantity': quantityController.text,
         //   'description': descController.text
         // });
-        // http.MultipartFile multipartFile =
-        //     await http.MultipartFile.fromPath('image', filePath);
-        // request.files.add(multipartFile);
+        // if (filePath != '') {
+        //   request.files
+        //       .add(await http.MultipartFile.fromPath('image', filePath));
+        // }
         //
-        // var response = await request.send().onError((error, stackTrace) {
+        // http.StreamedResponse response = await request.send().onError((error, stackTrace) {
         //   EasyLoading.dismiss();
-        //   CommonFunctions.showToast(MessageConstant.serverError, Colors.red);
         //
         //   throw Exception();
         // });
-        // EasyLoading.dismiss();
         //
         // if (response.statusCode == 200) {
+        //   var responsed = await http.Response.fromStream(response);
+        //   final responseData = json.decode(responsed.body);
+        //   print(responseData);
         //   EasyLoading.dismiss();
         //
-        //   var jsonData = await http.Response.fromStream(response);
-        //   Map<String, dynamic> json = jsonDecode(jsonData.body);
-        //
-        //   if (jsonData.statusCode == 200) {
-        //     CommonFunctions.showToast('Product Uploaded', Colors.green);
-        //   }
-        // } else if (response.statusCode == 401) {
         // } else {
         //   EasyLoading.dismiss();
-        //   CommonFunctions.showToast(MessageConstant.commonError, Colors.red);
+        //   print(response.reasonPhrase);
         // }
-        var request = http.MultipartRequest(
-            'POST', Uri.parse('${Urls.BASE_URL}/api/my-products'));
-        request.headers['Authorization'] =
-            'Bearer ${GetStorage().read('token')}';
-        request.fields.addAll({
+        var headers = {'Authorization': 'Bearer ${GetStorage().read('token')}'};
+        var data = D.FormData.fromMap({
+          'files': [await D.MultipartFile.fromFile(filePath, filename: '')],
           'name': nameController.text,
           'price': priceController.text,
           'stock_quantity': quantityController.text,
           'description': descController.text
         });
-        if (filePath != '') {
-          request.files
-              .add(await http.MultipartFile.fromPath('image', filePath));
-        }
 
-        http.StreamedResponse response = await request.send();
-        var responsed = await http.Response.fromStream(response);
+        var dio = D.Dio();
+        var response = await dio
+            .request(
+          Urls.GET_MY_PRODUCTS,
+          options: D.Options(
+            method: 'POST',
+            headers: headers,
+          ),
+          data: data,
+        )
+            .onError((error, stackTrace) {
+          EasyLoading.dismiss();
+          CommonFunctions.showToast(MessageConstant.serverError, Colors.red);
+
+          throw Exception();
+        });
 
         if (response.statusCode == 200) {
           EasyLoading.dismiss();
-          final responseData = json.decode(responsed.body);
-          print(responseData);
+          CommonFunctions.showToast("Product Uploaded!", Colors.green);
+          Get.offAndToNamed(Routes.MY_PRODUCTS);
+          print(json.encode(response.data));
         } else {
           EasyLoading.dismiss();
-          print(response.reasonPhrase);
+
+          print(response.statusMessage);
         }
       } else {
         EasyLoading.dismiss();
@@ -150,32 +157,80 @@ class AddProductController extends GetxController {
           connection == ConnectivityResult.wifi) {
         EasyLoading.show(status: 'Wait Please while processing...');
 
-        var request = http.MultipartRequest(
-            'POST',
-            Uri.parse(
-                '${Urls.BASE_URL}/api/my-products/$productId?_method=PUT'));
-        request.headers['Authorization'] =
-            'Bearer ${GetStorage().read('token')}';
-        request.fields.addAll({
+        var headers = {
+          'Authorization': 'Bearer ${GetStorage().read('token')}',
+        };
+        var data = D.FormData.fromMap({
+          'files': [await D.MultipartFile.fromFile(filePath, filename: '')],
           'name': nameController.text,
           'price': priceController.text,
           'stock_quantity': quantityController.text,
           'description': descController.text
         });
-        if (filePath != '') {
-          request.files
-              .add(await http.MultipartFile.fromPath('image', filePath));
-        }
 
-        http.StreamedResponse response = await request.send();
-        var responsed = await http.Response.fromStream(response);
+        var dio = D.Dio();
+        var response = await dio
+            .request(
+          '${Urls.BASE_URL}/api/my-products/$productId?_method=PUT',
+          options: D.Options(
+              method: 'POST',
+              headers: headers,
+              followRedirects: false,
+              validateStatus: (status) {
+                return status! < 500;
+              }),
+          data: data,
+        )
+            .onError((error, stackTrace) {
+          EasyLoading.dismiss();
+          CommonFunctions.showToast(MessageConstant.serverError, Colors.red);
+
+          throw Exception();
+        });
 
         if (response.statusCode == 200) {
-          final responseData = json.decode(responsed.body);
-          print(responseData);
+          EasyLoading.dismiss();
+          CommonFunctions.showToast("Product Updated!", Colors.green);
+          Get.offAndToNamed(Routes.MY_PRODUCTS);
+
+          print(json.encode(response.data));
         } else {
-          print(response.reasonPhrase);
+          EasyLoading.dismiss();
+
+          print(response.statusMessage);
         }
+
+        // var request = http.MultipartRequest(
+        //     'POST',
+        //     Uri.parse(
+        //         '${Urls.BASE_URL}/api/my-products/$productId?_method=PUT'));
+        // request.headers['Authorization'] =
+        //     'Bearer ${GetStorage().read('token')}';
+        // request.fields.addAll({
+        //   'name': nameController.text,
+        //   'price': priceController.text,
+        //   'stock_quantity': quantityController.text,
+        //   'description': descController.text
+        // });
+        // if (filePath != '') {
+        //   request.files
+        //       .add(await http.MultipartFile.fromPath('image', filePath));
+        // }
+        //
+        // http.StreamedResponse response =
+        //     await request.send().onError((error, stackTrace) {
+        //   EasyLoading.dismiss();
+        //
+        //   throw Exception();
+        // });
+        //
+        // if (response.statusCode == 200) {
+        //   var responsed = await http.Response.fromStream(response);
+        //   final responseData = json.decode(responsed.body);
+        //   print(responseData);
+        // } else {
+        //   print(response.reasonPhrase);
+        // }
       } else {
         EasyLoading.dismiss();
         CommonFunctions.showToast(MessageConstant.networkError, Colors.red);
